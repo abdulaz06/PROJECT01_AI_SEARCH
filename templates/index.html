@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Intelligent Search Visualizer</title>
+
+    <!-- Leaflet CSS -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""
+    />
+
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f4f6f8;
+            color: #333333;
+        }
+
+        header {
+            background-color: #1e293b;
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .status {
+            color: #4ade80;
+            font-size: 0.85rem;
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .controls-panel {
+            width: 340px;
+            background-color: white;
+            border-right: 1px solid #e2e8f0;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #475569;
+        }
+
+        select,
+        button {
+            padding: 8px 10px;
+            font-size: 0.9rem;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+        }
+
+        select {
+            background-color: white;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+            border-color: #2563eb;
+            flex: 1;
+        }
+
+        .btn-secondary {
+            background-color: #f1f5f9;
+            color: #475569;
+            flex: 1;
+        }
+
+        .card {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 0.85rem;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            color: #1e293b;
+        }
+
+        .card p {
+            margin: 6px 0;
+            line-height: 1.4;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+
+        #pathDisplay {
+            margin-top: 5px;
+            color: #475569;
+            line-height: 1.4;
+        }
+
+        #map {
+            flex: 1;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1 id="pageTitle">Intelligent Search Visualizer</h1>
+        <span class="status">Application Active</span>
+    </header>
+
+    <div class="main-container">
+
+        <div class="controls-panel">
+
+            <div class="control-group">
+                <label for="startSelect">Start City:</label>
+
+                <select id="startSelect">
+                    <option value="">-- Select Source --</option>
+                </select>
+            </div>
+
+
+            <div class="control-group">
+                <label for="goalSelect">Destination City:</label>
+
+                <select id="goalSelect">
+                    <option value="">-- Select Destination --</option>
+                </select>
+            </div>
+
+
+            <div class="control-group">
+                <label for="algoSelect">Search Algorithm:</label>
+
+                <select id="algoSelect">
+                    <option value="bfs">
+                        Breadth-First Search (BFS)
+                    </option>
+
+                    <option value="dfs">
+                        Depth-First Search (DFS)
+                    </option>
+
+                    <option value="ucs">
+                        Uniform Cost Search (UCS)
+                    </option>
+
+                    <option value="ids">
+                        Iterative Deepening Search (IDS)
+                    </option>
+
+                    <option value="greedy">
+                        Greedy Best-First Search
+                    </option>
+
+                    <option value="astar">
+                        A* Search
+                    </option>
+                </select>
+            </div>
+
+
+            <div class="buttons">
+                <button
+                    type="button"
+                    class="btn-primary"
+                    id="btnRun"
+                >
+                    Run Search
+                </button>
+
+                <button
+                    type="button"
+                    class="btn-secondary"
+                    id="btnReset"
+                >
+                    Reset
+                </button>
+            </div>
+
+
+            <div class="card">
+
+                <h3>Algorithm Concept Note</h3>
+
+                <p>
+                    <strong>Main Idea:</strong>
+                    <span id="conceptMain">
+                        Explores neighbors layer by layer using a FIFO queue.
+                    </span>
+                </p>
+
+                <p>
+                    <strong>Node Selection:</strong>
+                    <span id="conceptSelection">
+                        Selects the shallowest unvisited node first.
+                    </span>
+                </p>
+
+                <p>
+                    <strong>Information Used:</strong>
+                    <span id="conceptInfo">
+                        Search depth only.
+                    </span>
+                </p>
+
+            </div>
+
+
+            <div class="card">
+
+                <h3>Results</h3>
+
+                <div class="stat-row">
+                    <span>Total Cost:</span>
+                    <strong id="statCost">--</strong>
+                </div>
+
+                <div class="stat-row">
+                    <span>Nodes Expanded:</span>
+                    <strong id="statExpanded">--</strong>
+                </div>
+
+                <div style="margin-top: 8px;">
+                    <strong>Path:</strong>
+
+                    <div id="pathDisplay">
+                        None
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div id="map"></div>
+
+    </div>
+
+
+    <!-- Leaflet JavaScript -->
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin="">
+    </script>
+
+
+    <script>
+
+        /*
+            Short explanations shown when the user
+            chooses a search algorithm.
+        */
+        const ALGO_CONCEPTS = {
+
+            bfs: {
+                main:
+                    "Explores the graph level by level using a FIFO queue.",
+
+                selection:
+                    "Selects the shallowest unvisited node first.",
+
+                info:
+                    "Uses search depth and does not use road cost or a heuristic."
+            },
+
+
+            dfs: {
+                main:
+                    "Explores one branch as deeply as possible before backtracking.",
+
+                selection:
+                    "Selects the deepest unvisited node using a stack.",
+
+                info:
+                    "Uses the current search path and does not consider road cost."
+            },
+
+
+            ucs: {
+                main:
+                    "Searches for the path with the lowest total cost so far.",
+
+                selection:
+                    "Selects the node with the smallest cumulative path cost g(n).",
+
+                info:
+                    "Uses the road distances accumulated from the start node."
+            },
+
+
+            ids: {
+                main:
+                    "Repeatedly runs depth-limited search while increasing the depth limit.",
+
+                selection:
+                    "Explores nodes in depth-first order up to the current depth limit.",
+
+                info:
+                    "Uses an increasing depth limit."
+            },
+
+
+            greedy: {
+                main:
+                    "Uses a heuristic to move the search toward the destination.",
+
+                selection:
+                    "Selects the node with the smallest heuristic value h(n).",
+
+                info:
+                    "Uses straight-line distance from the current city to the goal."
+            },
+
+
+            astar: {
+                main:
+                    "Combines the cost traveled so far with an estimate of the remaining cost.",
+
+                selection:
+                    "Selects the node with the smallest f(n) = g(n) + h(n).",
+
+                info:
+                    "Uses road cost g(n) and straight-line heuristic h(n)."
+            }
+        };
+
+
+        /*
+            Create the Leaflet map.
+            The starting view will later be adjusted
+            to fit all of our Illinois cities.
+        */
+        const map = L.map("map").setView(
+            [40.0, -89.0],
+            7
+        );
+
+
+        /*
+            OpenStreetMap background tiles.
+        */
+        L.tileLayer(
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            {
+                maxZoom: 18,
+                attribution:
+                    "Map data &copy; OpenStreetMap contributors"
+            }
+        ).addTo(map);
+
+
+        let mapData = null;
+
+        let markers = {};
+
+        let activePath = null;
+
+
+        /*
+            Change the concept note whenever
+            a different algorithm is selected.
+        */
+        document
+            .getElementById("algoSelect")
+            .addEventListener("change", function () {
+
+                const algorithm = this.value;
+
+                const concept =
+                    ALGO_CONCEPTS[algorithm];
+
+                document.getElementById(
+                    "conceptMain"
+                ).textContent = concept.main;
+
+                document.getElementById(
+                    "conceptSelection"
+                ).textContent = concept.selection;
+
+                document.getElementById(
+                    "conceptInfo"
+                ).textContent = concept.info;
+            });
+
+
+        /*
+            Load the graph from Flask.
+        */
+        async function init() {
+
+            try {
+
+                const response =
+                    await fetch("/api/map");
+
+                if (!response.ok) {
+                    return;
+                }
+
+                mapData =
+                    await response.json();
+
+
+                /*
+                    Change title to show selected region.
+                */
+                if (mapData.region) {
+
+                    document.getElementById(
+                        "pageTitle"
+                    ).textContent =
+                        "Intelligent Search Visualizer - "
+                        + mapData.region;
+                }
+
+
+                const startSelect =
+                    document.getElementById(
+                        "startSelect"
+                    );
+
+                const goalSelect =
+                    document.getElementById(
+                        "goalSelect"
+                    );
+
+
+                /*
+                    Get and sort city names.
+                */
+                const cities =
+                    Object.keys(
+                        mapData.locations || {}
+                    ).sort();
+
+
+                /*
+                    Add each city to both dropdowns.
+                */
+                cities.forEach(function (city) {
+
+                    const startOption =
+                        document.createElement(
+                            "option"
+                        );
+
+                    startOption.value = city;
+                    startOption.textContent = city;
+
+                    startSelect.appendChild(
+                        startOption
+                    );
+
+
+                    const goalOption =
+                        document.createElement(
+                            "option"
+                        );
+
+                    goalOption.value = city;
+                    goalOption.textContent = city;
+
+                    goalSelect.appendChild(
+                        goalOption
+                    );
+                });
+
+
+                /*
+                    Draw the graph edges.
+                */
+                const graph =
+                    mapData.graph || {};
+
+                const locations =
+                    mapData.locations || {};
+
+                const drawnEdges =
+                    new Set();
+
+                const bounds = [];
+
+
+                for (
+                    const [city, neighbors]
+                    of Object.entries(graph)
+                ) {
+
+                    for (
+                        const neighbor
+                        of Object.keys(neighbors)
+                    ) {
+
+                        /*
+                            Since our graph is undirected,
+                            each edge appears twice.
+                            This avoids drawing it twice.
+                        */
+                        const edgeKey =
+                            [city, neighbor]
+                                .sort()
+                                .join("<->");
+
+
+                        if (
+                            !drawnEdges.has(edgeKey)
+                            && locations[city]
+                            && locations[neighbor]
+                        ) {
+
+                            drawnEdges.add(edgeKey);
+
+
+                            L.polyline(
+                                [
+                                    [
+                                        locations[city].lat,
+                                        locations[city].lon
+                                    ],
+                                    [
+                                        locations[neighbor].lat,
+                                        locations[neighbor].lon
+                                    ]
+                                ],
+                                {
+                                    color: "#64748b",
+                                    weight: 2,
+                                    opacity: 0.55
+                                }
+                            ).addTo(map);
+                        }
+                    }
+                }
+
+
+                /*
+                    Draw a marker for each city.
+                */
+                for (
+                    const [city, coords]
+                    of Object.entries(locations)
+                ) {
+
+                    bounds.push(
+                        [coords.lat, coords.lon]
+                    );
+
+
+                    const marker =
+                        L.circleMarker(
+                            [
+                                coords.lat,
+                                coords.lon
+                            ],
+                            {
+                                radius: 5,
+                                fillColor: "#2563eb",
+                                color: "white",
+                                weight: 1.5,
+                                fillOpacity: 1
+                            }
+                        ).addTo(map);
+
+
+                    marker.bindPopup(
+                        "<b>" + city + "</b>"
+                    );
+
+
+                    markers[city] = marker;
+                }
+
+
+                /*
+                    Adjust map view so all cities
+                    are visible.
+                */
+                if (bounds.length > 0) {
+
+                    map.fitBounds(
+                        bounds,
+                        {
+                            padding: [30, 30]
+                        }
+                    );
+                }
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Error loading map:",
+                    error
+                );
+            }
+        }
+
+
+        /*
+            Run Search button.
+        */
+        document
+            .getElementById("btnRun")
+            .addEventListener(
+                "click",
+                async function () {
+
+                    const start =
+                        document.getElementById(
+                            "startSelect"
+                        ).value;
+
+                    const goal =
+                        document.getElementById(
+                            "goalSelect"
+                        ).value;
+
+                    const algorithm =
+                        document.getElementById(
+                            "algoSelect"
+                        ).value;
+
+
+                    if (!start || !goal) {
+
+                        alert(
+                            "Please select both a start and destination city."
+                        );
+
+                        return;
+                    }
+
+
+                    try {
+
+                        const response =
+                            await fetch(
+                                "/api/search",
+                                {
+                                    method: "POST",
+
+                                    headers: {
+                                        "Content-Type":
+                                            "application/json"
+                                    },
+
+                                    body:
+                                        JSON.stringify(
+                                            {
+                                                start: start,
+                                                goal: goal,
+                                                algorithm: algorithm
+                                            }
+                                        )
+                                }
+                            );
+
+
+                        const data =
+                            await response.json();
+
+
+                        /*
+                            Display cost.
+                        */
+                        if (
+                            data.cost !== undefined
+                        ) {
+
+                            document.getElementById(
+                                "statCost"
+                            ).textContent =
+                                data.cost + " miles";
+                        }
+
+                        else {
+
+                            document.getElementById(
+                                "statCost"
+                            ).textContent = "--";
+                        }
+
+
+                        /*
+                            Display nodes expanded.
+                        */
+                        if (
+                            data.nodes_expanded
+                            !== undefined
+                        ) {
+
+                            document.getElementById(
+                                "statExpanded"
+                            ).textContent =
+                                data.nodes_expanded;
+                        }
+
+                        else {
+
+                            document.getElementById(
+                                "statExpanded"
+                            ).textContent = "--";
+                        }
+
+
+                        /*
+                            Display path on screen
+                            and draw it on map.
+                        */
+                        if (
+                            data.path
+                            && data.path.length > 0
+                        ) {
+
+                            document.getElementById(
+                                "pathDisplay"
+                            ).textContent =
+                                data.path.join(
+                                    " -> "
+                                );
+
+
+                            /*
+                                Remove the old result path
+                                before drawing a new one.
+                            */
+                            if (activePath) {
+
+                                map.removeLayer(
+                                    activePath
+                                );
+                            }
+
+
+                            const pathCoordinates =
+                                data.path.map(
+                                    function (city) {
+
+                                        return [
+                                            mapData.locations[city].lat,
+                                            mapData.locations[city].lon
+                                        ];
+                                    }
+                                );
+
+
+                            activePath =
+                                L.polyline(
+                                    pathCoordinates,
+                                    {
+                                        color: "#16a34a",
+                                        weight: 5
+                                    }
+                                ).addTo(map);
+
+
+                            map.fitBounds(
+                                activePath.getBounds(),
+                                {
+                                    padding: [40, 40]
+                                }
+                            );
+                        }
+
+                        else {
+
+                            document.getElementById(
+                                "pathDisplay"
+                            ).textContent =
+                                data.message
+                                || "No path found.";
+                        }
+
+                    }
+
+                    catch (error) {
+
+                        console.error(
+                            "Search failed:",
+                            error
+                        );
+                    }
+                }
+            );
+
+
+        /*
+            Reset button.
+        */
+        document
+            .getElementById("btnReset")
+            .addEventListener(
+                "click",
+                function () {
+
+                    if (activePath) {
+
+                        map.removeLayer(
+                            activePath
+                        );
+
+                        activePath = null;
+                    }
+
+
+                    document.getElementById(
+                        "statCost"
+                    ).textContent = "--";
+
+                    document.getElementById(
+                        "statExpanded"
+                    ).textContent = "--";
+
+                    document.getElementById(
+                        "pathDisplay"
+                    ).textContent = "None";
+
+
+                    /*
+                        Show all Illinois locations again.
+                    */
+                    if (mapData) {
+
+                        const bounds =
+                            Object.values(
+                                mapData.locations
+                            ).map(
+                                function (coords) {
+
+                                    return [
+                                        coords.lat,
+                                        coords.lon
+                                    ];
+                                }
+                            );
+
+
+                        if (bounds.length > 0) {
+
+                            map.fitBounds(
+                                bounds,
+                                {
+                                    padding: [30, 30]
+                                }
+                            );
+                        }
+                    }
+                }
+            );
+
+
+        /*
+            Start application.
+        */
+        init();
+
+    </script>
+
+</body>
+
+</html>
