@@ -40,16 +40,16 @@
 ---
 
 ## Section 4: Deployed and Presentation Information
-- **Deployment Platform:** [Write your deployment platform here, e.g., Render]
-- **Live Deployment URL:** [Provide your live deployment site URL here]
-- **Video Presentation Link:** [Provide an accessible link to your 5–7 minute video presentation]
+- **Deployment Platform:** Render
+- **Live Deployment URL:** https://project01-ai-search-cu1z.onrender.com/
+- **Video Presentation Link:** https://youtu.be/gHMlFt4gO_k
 
 ---
 
 ## Section 5: Discussion
 - **Which search algorithm is best for this route finding problem?** 
-    [Write your answer here]
-- **Search Efficiency (Nodes expanded/time taken comparison):** [Write your answer here comparing search efficiency in terms of number of nodes visited and runtime across different algorithms]
+For my route-finding problem, A* provides a good balance between finding the shortest route and limiting the number of cities expanded. It combines the distance already traveled with a Haversine estimate of the remaining distance. For Chicago to Champaign, A* found the same shortest route as UCS at 157.90 miles, but expanded only 11 cities compared with UCS’s 19. The Haversine heuristic provides a geographic straight-line estimate, helping guide the search toward the destination.
+- **Search Efficiency (Nodes expanded/time taken comparison):** For Chicago to Champaign, Greedy expanded only 4 cities but returned a longer route of 190.44 miles. BFS found the same distance with 17 expansions, while IDS recorded 48 visits, including repeated cities from increasing its depth limit. DFS expanded 11 cities but returned the longest route at 284.10 miles, showing that fewer expansions do not necessarily mean a better route. A* and UCS both found the shortest distance, with A* requiring fewer expansions.
+Approximate local execution times were 0.010 ms for DFS, 0.012 ms for BFS, 0.019 ms each for UCS and Greedy, 0.023 ms for IDS, and 0.029 ms for A*. These measurements exclude website and network delays. Although A* reduced exploration, its heuristic calculations added overhead on this small graph.
 - **Link the idea of search algorithm to today Generative AI.** 
-    [Write your answer here]
-
+Generative AI also chooses among possible continuations when producing an answer, although its methods differ from the graph-search algorithms in this project. Greedy decoding selects the most likely next token, while beam search retains several candidate sequences. Both involve balancing computation with result quality. A possible extension of my project could use generative AI to interpret a travel request, call A* to calculate the shortest route, and explain the result in natural language.
